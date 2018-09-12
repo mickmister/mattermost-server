@@ -15,6 +15,7 @@ import (
 )
 
 const (
+	VERSION_5_5_0            = "5.5.0"
 	VERSION_5_4_0            = "5.4.0"
 	VERSION_5_3_0            = "5.3.0"
 	VERSION_5_2_0            = "5.2.0"
@@ -86,6 +87,7 @@ func UpgradeDatabase(sqlStore SqlStore) {
 	UpgradeDatabaseToVersion52(sqlStore)
 	UpgradeDatabaseToVersion53(sqlStore)
 	UpgradeDatabaseToVersion54(sqlStore)
+	UpgradeDatabaseToVersion55(sqlStore)
 
 	// If the SchemaVersion is empty this this is the first time it has ran
 	// so lets set it to the current version.
@@ -503,4 +505,45 @@ func UpgradeDatabaseToVersion54(sqlStore SqlStore) {
 	}
 	sqlStore.CreateColumnIfNotExists("Users", "AcceptedServiceTermsId", "varchar(64)", "varchar(64)", "")
 	// 	saveSchemaVersion(sqlStore, VERSION_5_4_0)
+}
+
+func UpgradeDatabaseToVersion55(sqlStore SqlStore) {
+	// if shouldPerformUpgrade(sqlStore, VERSION_5_4_0, VERSION_5_5_0) {
+	failureF := func(msg string) {
+		mlog.Critical(msg)
+		time.Sleep(time.Second)
+		os.Exit(EXIT_GENERIC_FAILURE)
+	}
+
+	// sqlStore.CreateIndexIfNotExists("idx_groups_remote_id", "Groups", "RemoteId")
+	sqlStore.CreateIndexIfNotExists("idx_groupmembers_create_at", "GroupMembers", "CreateAt")
+	// sqlStore.CreateUniqueIndexIfNotExists("ux_groups_type_remote_id", "Groups", []string{"Type", "RemoteId"})
+
+	transaction, err := sqlStore.GetMaster().Begin()
+	if err != nil {
+		failureF(err.Error())
+	}
+
+	foreignKeys := [][]string{
+		[]string{"GroupMembers", "GroupId", "Groups(Id)"},
+		[]string{"GroupMembers", "UserId", "Users(Id)"},
+
+		[]string{"GroupTeams", "GroupId", "Groups(Id)"},
+		[]string{"GroupTeams", "TeamId", "Teams(Id)"},
+
+		[]string{"GroupChannels", "GroupId", "Groups(Id)"},
+		[]string{"GroupChannels", "ChannelId", "Channels(Id)"},
+	}
+
+	for _, item := range foreignKeys {
+		sql := fmt.Sprintf("ALTER TABLE %s ADD FOREIGN KEY (%s) REFERENCES %s", item[0], item[1], item[2])
+		if _, err := transaction.Exec(sql); err != nil {
+			failureF(err.Error())
+		}
+	}
+
+	if err := transaction.Commit(); err != nil {
+		failureF(err.Error())
+	}
+	// }
 }
