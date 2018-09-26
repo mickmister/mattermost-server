@@ -108,11 +108,8 @@ type Routes struct {
 
 	Webrtc *mux.Router // 'api/v4/webrtc'
 
-<<<<<<< HEAD
 	ServiceTerms *mux.Router // 'api/v4/service_terms
-=======
-	Groups *mux.Router // 'api/v4/groups'
->>>>>>> WIP
+	Groups       *mux.Router // 'api/v4/groups'
 }
 
 type API struct {

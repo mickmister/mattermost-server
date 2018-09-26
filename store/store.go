@@ -65,12 +65,9 @@ type Store interface {
 	UserAccessToken() UserAccessTokenStore
 	ChannelMemberHistory() ChannelMemberHistoryStore
 	Plugin() PluginStore
-<<<<<<< HEAD
 	ServiceTerms() ServiceTermsStore
-=======
 	Group() GroupStore
 
->>>>>>> WIP
 	MarkSystemRanUnitTests()
 	Close()
 	LockToMaster()
